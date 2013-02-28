@@ -13,8 +13,10 @@ module.exports = function ( grunt ) {
 
 		render = function ( template, variables ) {
 			var result = template.replace( pattern, function ( match, varName ) {
-				if ( variables[ varName ] !== undefined ) {
-					return variables[ varName ];
+				var v = variables[ varName ];
+
+				if ( v !== undefined ) {
+					return ( typeof v === 'function' ? v() : v );
 				}
 
 				return match;
