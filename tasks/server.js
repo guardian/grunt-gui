@@ -19,7 +19,7 @@ module.exports = function ( grunt ) {
 		middleware = [];
 
 		listDir = function ( req, res, next, contents ) {
-			var parsedUrl, pathname, html;
+			var parsedUrl, pathname, html, style;
 
 			contents.sort( function ( a, b ) {
 				if ( ( a.isDir && b.isDir ) || ( !a.isDir && !b.isDir ) ) {
@@ -32,7 +32,7 @@ module.exports = function ( grunt ) {
 			parsedUrl = url.parse( req.url );
 			pathname = parsedUrl.pathname;
 
-			html = '<a href="/readme">README!</a><p>Listing virtual directory ' + pathname + '</p>';
+			html = '<a href="/readme">README!</a><h1>Listing virtual directory ' + pathname + '</h1>';
 
 			html += '<table>';
 
@@ -46,8 +46,10 @@ module.exports = function ( grunt ) {
 
 			html += '</table>';
 
+			style = "<style>body {font-family: 'Helvetica Neue', 'Arial'; font-size: 16px; color: #333; } td { padding: 0.3em 1em 0.3em 0; border-bottom: 1px solid #eee; color: #aaa } a { display: block }</style>";
+
 			res.setHeader( 'Content-Type', 'text/html' );
-			res.end( html );
+			res.end( style + html );
 		};
 
 		options.mappings.forEach( function ( mapping ) {
