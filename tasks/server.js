@@ -6,24 +6,65 @@ module.exports = function ( grunt ) {
 
 	grunt.registerMultiTask( 'server', 'Launch a preview server', function () {
 
-		var done, options, app, connect, mime, middleware;
+		var done, options, app, connect, mime, middleware, listDir, url, fs;
 
 		done = this.async();
 
 		connect = require( 'connect' );
 		mime = require( 'mime' );
+		url = require( 'url' );
+		fs = require( 'fs' );
 
 		options = this.options();
 		middleware = [];
 
+		listDir = function ( req, res, next, contents ) {
+			var parsedUrl, pathname, html;
+
+			contents.sort( function ( a, b ) {
+				if ( ( a.isDir && b.isDir ) || ( !a.isDir && !b.isDir ) ) {
+					return a.virtualpath > b.virtualpath;
+				}
+
+				return ( a.isDir ? -1 : 1 );
+			});
+
+			parsedUrl = url.parse( req.url );
+			pathname = parsedUrl.pathname;
+
+			html = '<a href="/readme">README!</a><p>Listing virtual directory ' + pathname + '</p>';
+
+			html += '<table>';
+
+			contents.forEach( function ( item ) {
+				if ( item.isDir ) {
+					html += '<tr><td><a href="' + item.virtualpath + '"><strong>' + item.virtualpath + '</strong></a></td><td>' + item.filepath + '</td></tr>';
+				} else {
+					html += '<tr><td><a href="' + item.virtualpath + '">' + item.virtualpath + '</a></td><td>' + item.filepath + '</td></tr>';
+				}
+			});
+
+			html += '</table>';
+
+			res.setHeader( 'Content-Type', 'text/html' );
+			res.end( html );
+		};
+
 		options.mappings.forEach( function ( mapping ) {
 			middleware[ middleware.length ] = function ( req, res, next ) {
-				var prefix, mimetype, data, src, i, complete, folder, relpath, filepath;
+				var prefix, mimetype, data, src, i, complete, folder, relpath, filepath, virtualDirContents, dirContents;
 
 				prefix = mapping.prefix;
+				virtualDirContents = [];
 
 				// if the request URL matches the prefix...
 				if ( req.url.indexOf( prefix ) === 0 ) {
+					
+					if ( typeof mapping.src === 'function' ) {
+						res.end( mapping.src( req ) );
+						return;
+					}
+
 					// ... try each of the src folders in turn
 					src = ( typeof mapping.src === 'string' ? [ mapping.src ] : mapping.src );
 
@@ -34,17 +75,40 @@ module.exports = function ( grunt ) {
 						filepath = folder + relpath;
 
 						if ( grunt.file.exists( filepath ) ) {
-							mimetype = mime.lookup( filepath );
+							if ( !grunt.file.isDir( filepath ) ) {
+								mimetype = mime.lookup( filepath );
 
-							res.setHeader( 'Content-Type', mimetype );
-							res.end( grunt.file.read( filepath ) );
-							complete = true;
-							break;
+								res.setHeader( 'Content-Type', mimetype );
+								res.end( grunt.file.read( filepath ) );
+								complete = true;
+								break;
+							}
+							
+							else {
+								// add trailing slash
+								if ( req.url.substr( -1 ) !== '/' ) {
+									req.url += '/';
+								}
+
+								dirContents = fs.readdirSync( filepath ).map( function ( item ) {
+									return {
+										filepath: filepath + item,
+										virtualpath: req.url + item,
+										isDir: grunt.file.isDir( filepath + item )
+									};
+								});
+
+								virtualDirContents = virtualDirContents.concat( dirContents );
+							}
 						}
 					}
 
 					if ( !complete ) {
-						next();
+						if ( virtualDirContents.length ) {
+							listDir( req, res, next, virtualDirContents );
+						} else {
+							next();
+						}
 					}
 				}
 
@@ -62,7 +126,8 @@ module.exports = function ( grunt ) {
 
 		app.use( function ( req, res, next ) {
 			res.statusCode = 404;
-			res.end( 'File not found: ' + req.url + ' (have you run grunt?)' );
+			res.setHeader( 'Content-Type', 'text/html' );
+			res.end( 'File not found: ' + req.url + ' (have you run grunt? See the <a href="/readme">README</a> for more info)' );
 		});
 
 		app.listen( options.port );
