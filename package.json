@@ -9,17 +9,11 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "none"
+		"url": "https://github.com/GuardianInteractive/grunt-gui.git"
 	},
 	"bugs": {
-		"url": ""
+		"url": "https://github.com/GuardianInteractive/grunt-gui/issues"
 	},
-	"licenses": [
-		{
-			"type": "none",
-			"url": "/blob/master/LICENSE-none"
-		}
-	],
 	"main": "Gruntfile.js",
 	"engines": {
 		"node": ">= 0.8.0"
