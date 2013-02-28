@@ -1,89 +1,130 @@
 # grunt-gui
 
-> Collection of Gutasks specific to Guardian Interactive
+A collection of grunt tasks specifically related to Guardian Interactive projects. If any one of these gets large (and generally useful) enough to be broken out into its own repo then so be it, but for now the limited scope and co-dependencies of these tasks means it probably makes sense for them to live together here.
 
-## Getting Started
-This plugin requires Grunt `~0.4.0`
+## Tasks
 
-If you haven't used [Grunt](http://gruntjs.com/) before, be sure to check out the [Getting Started](http://gruntjs.com/getting-started) guide, as it explains how to create a [Gruntfile](http://gruntjs.com/sample-gruntfile) as well as install and use Grunt plugins. Once you're familiar with that process, you may install this plugin with this command:
+### createS3Instance
+Creates an s3 instance using the [AWS Node SDK](http://aws.amazon.com/sdkfornodejs/), which is then used by subsequent tasks in the deployment sequence.
+
+Because there isn't currently a good way to share stuff between tasks in grunt, it uses a bad way instead: monkey patching. After this task has run, a reference to the instance is available for other tasks in the same sequence as `grunt.s3`.
+
+For best results add your credentials as environment variables. On OS X, add the following lines to your `~/.bash_profile` file:
 
 ```shell
-npm install grunt-gui --save-dev
+export AWS_ACCESS_KEY_ID='yourKeyIdHere'
+export AWS_SECRET_ACCESS_KEY='yourSecretKeyHere'
 ```
 
-One the plugin has been installed, it may be enabled inside your Gruntfile with this line of JavaScript:
+Alternatively you can pass them as config options:
 
 ```js
-grunt.loadNpmTasks('grunt-gui');
+// DO NOT DO THIS - you may accidentally commit your credentials to GitHub
+grunt.initConfig({
+  s3: {
+    accessKeyId: 'yourKeyIdHere',
+    secretAccessKey: 'yourSecretKeyHere'
+  }
+});
+
+// DO THIS INSTEAD
+grunt.initConfig({
+  s3: {
+    credentials: '~/.aws_credentials.json' // or wherever. Should contain same properties as above
+  }
+});
 ```
 
-## The "gui" task
 
-### Overview
-In your project's Gruntfile, add a section named `gui` to the data object passed into `grunt.initConfig()`.
+### downloadFromS3
+This multi-task downloads `key` from `bucket` and writes it to `dest`. As in:
 
 ```js
 grunt.initConfig({
-  gui: {
+  downloadFromS3: {
     options: {
-      // Task-specific options go here.
+      bucket: '<%= s3.bucket %>'
     },
-    your_target: {
-      // Target-specific file lists and/or options go here.
-    },
-  },
-})
+    manifest: {
+      options: {
+        key: '<%= projectPath %>/manifest.json',
+        dest: 'tmp/manifest.json'
+      }
+    }
+  }
+});
 ```
 
-### Options
+### verifyManifest
+Check that the project's `guid` (set in `Gruntfile.js`) is the same as that in the existing project `manifest.json` file on S3. This is to prevent naming collisions.
 
-#### options.separator
-Type: `String`
-Default value: `',  '`
-
-A string value that is used to do something with whatever.
-
-#### options.punctuation
-Type: `String`
-Default value: `'.'`
-
-A string value that is used to do something else with whatever else.
-
-### Usage Examples
-
-#### Default Options
-In this example, the default options are used to do something with whatever. So if the `testing` file has the content `Testing` and the `123` file had the content `1 2 3`, the generated result would be `Testing, 1 2 3.`
+### replaceTags
+Goes through files and replaces <%= tags %> with the appropriate variables:
 
 ```js
 grunt.initConfig({
-  gui: {
-    options: {},
-    files: {
-      'dest/default_options': ['src/testing', 'src/123'],
-    },
-  },
-})
+  replaceTags: {
+    preDeploy: {
+      files: [
+        {
+          expand: true,
+          cwd: 'project/boot/',
+          src: [ '**/*' ],
+          dest: 'tmp/deploy/boot'
+        }
+      ],
+      options: {
+        variables: {
+          projectUrl: 'http://interactive.guim.co.uk/my-project',
+          versionUrl: 'http://interactive.guim.co.uk/my-project/v/3'
+        }
+      }
+    }
+  }
+});
 ```
 
-#### Custom Options
-In this example, custom options are used to do something else with whatever else. So if the `testing` file has the content `Testing` and the `123` file had the content `1 2 3`, the generated result in this case would be `Testing: 1 2 3 !!!`
+### lockProject
+Uploads a file to `<%= projectPath %>/locked.txt`, to prevent concurrency fuckups. `lockProject:unlock` deletes the file once deployment has successfully completed.
+
+
+### uploadToS3
+Multi-task to upload files and data. If you pass in `key` it will upload a single file, if you pass in `root` it will upload the contents of a folder to `pathPrefix`. With `key` you have the option of `src`, which uploads the contents of a file (guessing the mime-type) or `data`, which does exactly what you'd expect.
 
 ```js
 grunt.initConfig({
-  gui: {
+  uploadToS3: {
     options: {
-      separator: ': ',
-      punctuation: ' !!!',
+      bucket: '<%= s3.bucket %>'
     },
-    files: {
-      'dest/default_options': ['src/testing', 'src/123'],
+    manifest: {
+      options: {
+        key: '<%= projectPath %>/manifest.json',
+        data: '{"guid":"<%= guid %>","version":<%= version %>}',
+        params: {
+          CacheControl: 'no-cache',
+          ContentType: 'application/json'
+        }
+      }
     },
-  },
-})
+    version: {
+      options: {
+        root: 'test/fixtures/sample/version/',
+        pathPrefix: '<%= versionPath %>',
+        params: {
+          CacheControl: 'max-age=31536000'
+        }
+      }
+    },
+    boot: {
+      options: {
+        root: 'tmp/boot/',
+        pathPrefix: '<%= projectPath %>',
+        params: {
+          CacheControl: 'max-age=20'
+        }
+      }
+    }
+  }
+});
 ```
-
-## Contributing
-In lieu of a formal styleguide, take care to maintain the existing coding style. Add unit tests for any new or changed functionality. Lint and test your code using [Grunt](http://gruntjs.com/).
-
-## Release History
-_(Nothing yet)_

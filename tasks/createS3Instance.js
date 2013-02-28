@@ -11,7 +11,7 @@ module.exports = function ( grunt ) {
 		AWS = require( 'aws-sdk' );
 		fs = require( 'fs' );
 
-		config = grunt.config( 's3Credentials' ) || {};
+		config = grunt.config( 's3' ) || {};
 
 		// load credentials from task config... (DO NOT DO THIS!)
 		if ( config.accessKeyId && config.secretAccessKey ) {
@@ -20,8 +20,8 @@ module.exports = function ( grunt ) {
 		}
 
 		// ...or specified JSON file
-		else if ( config.path && fs.fileExistsSync( config.path ) ) {
-			credentials = JSON.parse( fs.readFileSync( config.path ).toString() );
+		else if ( config.credentials && fs.fileExistsSync( config.credentials ) ) {
+			credentials = JSON.parse( grunt.file.read( config.credentials ) );
 			accessKeyId = credentials.accessKeyId;
 			secretAccessKey = credentials.secretAccessKey;
 		}
