@@ -49,11 +49,13 @@ module.exports = function ( grunt ) {
 			} catch ( err ) {
 				grunt.log.error( 'Invalid file' );
 				done( false );
+				return;
 			}
 
 			if ( manifest.guid !== config.guid ) {
 				grunt.log.error( 'GUIDs do not match. If you are sure that you want to overwrite this project, edit Gruntfile.js so that it has the following GUID:\n\n' + manifest.guid );
 				done( false );
+				return;
 			}
 
 			grunt.log.writeln( 'GUIDs match. Next version is ' + ( manifest.version + 1 ) );
