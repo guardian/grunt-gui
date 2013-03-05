@@ -34,9 +34,10 @@ module.exports = function ( grunt ) {
 				return false;
 			}
 
-			template = grunt.file.read( file.src[0] );
-
-			grunt.file.write( file.dest, render( template, options.variables ) );
+			if ( !grunt.file.isDir( file.src[0] ) ) {
+				template = grunt.file.read( file.src[0] );
+				grunt.file.write( file.dest, render( template, options.variables ) );
+			}			
 		}
 
 	});
