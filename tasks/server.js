@@ -107,8 +107,6 @@ module.exports = function ( grunt ) {
 						relpath = pathname.substring( prefix.length );
 						filepath = path.join( folder, relpath );
 
-						console.log( 'looking in %s for "%s"', folder, relpath );
-
 						if ( grunt.file.exists( filepath ) ) {
 							if ( !grunt.file.isDir( filepath ) ) {
 								mimetype = mime.lookup( filepath );
