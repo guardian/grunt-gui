@@ -6,7 +6,7 @@ module.exports = function ( grunt ) {
 
 	grunt.registerMultiTask( 'server', 'Launch a preview server', function () {
 
-		var done, options, app, connect, mime, middleware, listDir, url, fs, addTrailingSlash, removeTrailingSlash;
+		var done, options, app, connect, mime, middleware, listDir, url, fs, path, addTrailingSlash, removeTrailingSlash;
 
 		done = this.async();
 
@@ -14,6 +14,7 @@ module.exports = function ( grunt ) {
 		mime = require( 'mime' );
 		url = require( 'url' );
 		fs = require( 'fs' );
+		path = require( 'path' );
 
 		options = this.options();
 		middleware = [];
@@ -101,9 +102,12 @@ module.exports = function ( grunt ) {
 
 					for ( i=0; i<src.length; i+=1 ) {
 						folder = removeTrailingSlash( src[i] );
+						//folder = src[i];
 
 						relpath = pathname.substring( prefix.length );
-						filepath = folder + relpath;
+						filepath = path.join( folder, relpath );
+
+						console.log( 'looking in %s for "%s"', folder, relpath );
 
 						if ( grunt.file.exists( filepath ) ) {
 							if ( !grunt.file.isDir( filepath ) ) {
