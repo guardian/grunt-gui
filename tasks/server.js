@@ -6,7 +6,7 @@ module.exports = function ( grunt ) {
 
 	grunt.registerMultiTask( 'server', 'Launch a preview server', function () {
 
-		var done, options, app, connect, mime, middleware, listDir, url, fs;
+		var done, options, app, connect, mime, middleware, listDir, url, fs, addTrailingSlash, removeTrailingSlash;
 
 		done = this.async();
 
@@ -17,6 +17,22 @@ module.exports = function ( grunt ) {
 
 		options = this.options();
 		middleware = [];
+
+		addTrailingSlash = function ( str ) {
+			if ( str.substr( -1 ) !== '/' ) {
+				return str + '/';
+			}
+
+			return str;
+		};
+
+		removeTrailingSlash = function ( str ) {
+			if ( str.length && str.substr( -1 ) === '/' ) {
+				return str.substr( 0, str.length - 1 );
+			}
+
+			return str;
+		};
 
 		listDir = function ( req, res, next, contents ) {
 			var parsedUrl, pathname, html, style;
@@ -34,6 +50,17 @@ module.exports = function ( grunt ) {
 
 			html = '<a href="/readme">README!</a><h1>Listing virtual directory ' + pathname + '</h1>';
 
+			// add link to parent dir... hack alert
+			(function () {
+				if ( pathname.substr( -1 ) === '/' ) {
+					html += '<a href="../">../</a>';
+				} else {
+					html += '<a href="./">../</a>';
+				}
+			}());
+
+			
+
 			html += '<table>';
 
 			contents.forEach( function ( item ) {
@@ -46,7 +73,7 @@ module.exports = function ( grunt ) {
 
 			html += '</table>';
 
-			style = "<style>body {font-family: 'Helvetica Neue', 'Arial'; font-size: 16px; color: #333; } td { padding: 0.3em 1em 0.3em 0; border-bottom: 1px solid #eee; color: #aaa } a { display: block }</style>";
+			style = "<style>body {font-family: 'Helvetica Neue', 'Arial'; font-size: 16px; color: #333; } h1 { font-size: 1.4em; } td { padding: 0.3em 1em 0.3em 0; border-bottom: 1px solid #eee; color: #aaa } a { display: block }</style>";
 
 			res.setHeader( 'Content-Type', 'text/html' );
 			res.end( style + html );
@@ -54,13 +81,15 @@ module.exports = function ( grunt ) {
 
 		options.mappings.forEach( function ( mapping ) {
 			middleware[ middleware.length ] = function ( req, res, next ) {
-				var prefix, mimetype, data, src, i, complete, folder, relpath, filepath, virtualDirContents, dirContents;
+				var prefix, mimetype, data, src, i, complete, folder, pathname, relpath, filepath, virtualDirContents, dirContents;
 
 				prefix = mapping.prefix;
 				virtualDirContents = [];
 
+				pathname = url.parse( req.url ).pathname;
+
 				// if the request URL matches the prefix...
-				if ( req.url.indexOf( prefix ) === 0 ) {
+				if ( pathname.indexOf( prefix ) === 0 ) {
 					
 					if ( typeof mapping.src === 'function' ) {
 						res.end( mapping.src( req ) );
@@ -71,9 +100,9 @@ module.exports = function ( grunt ) {
 					src = ( typeof mapping.src === 'string' ? [ mapping.src ] : mapping.src );
 
 					for ( i=0; i<src.length; i+=1 ) {
-						folder = src[i];
+						folder = removeTrailingSlash( src[i] );
 
-						relpath = req.url.substring( prefix.length );
+						relpath = pathname.substring( prefix.length );
 						filepath = folder + relpath;
 
 						if ( grunt.file.exists( filepath ) ) {
@@ -88,14 +117,13 @@ module.exports = function ( grunt ) {
 							
 							else {
 								// add trailing slash
-								if ( req.url.substr( -1 ) !== '/' ) {
-									req.url += '/';
-								}
+								filepath = addTrailingSlash( filepath );
+								pathname = addTrailingSlash( pathname );
 
 								dirContents = fs.readdirSync( filepath ).map( function ( item ) {
 									return {
 										filepath: filepath + item,
-										virtualpath: req.url + item,
+										virtualpath: pathname + item,
 										isDir: grunt.file.isDir( filepath + item )
 									};
 								});
