@@ -112,7 +112,7 @@ module.exports = function ( grunt ) {
 								mimetype = mime.lookup( filepath );
 
 								res.setHeader( 'Content-Type', mimetype );
-								res.end( grunt.file.read( filepath ) );
+								res.end( fs.readFileSync( filepath ) );
 								complete = true;
 								break;
 							}
