@@ -1,7 +1,7 @@
 {
 	"name": "grunt-gui",
 	"description": "Collection of tasks specific to Guardian Interactive",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"homepage": "",
 	"author": {
 		"name": "Guardian Interactive team",

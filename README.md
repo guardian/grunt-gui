@@ -4,6 +4,27 @@ A collection of grunt tasks specifically related to Guardian Interactive project
 
 ## Tasks
 
+### fetch
+Fetch a file from a remote URL, optionally process it, and save it locally
+
+```js
+grunt.initConfig({
+  fetch: {
+    options: {
+      process: require( 'csv-to-json' )
+    },
+    table1: {
+      url: https://docs.google.com/a/guardian.co.uk/spreadsheet/ccc?key=123456#gid=0,
+      dest: 'project/data/table1.json'
+    },
+    table2: {
+      url: https://docs.google.com/a/guardian.co.uk/spreadsheet/ccc?key=234567#gid=0,
+      dest: 'project/data/table2.json'
+    }
+  }
+});
+```
+
 ### createS3Instance
 Creates an s3 instance using the [AWS Node SDK](http://aws.amazon.com/sdkfornodejs/), which is then used by subsequent tasks in the deployment sequence.
 
