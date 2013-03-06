@@ -82,7 +82,7 @@ module.exports = function ( grunt ) {
 
 		options.mappings.forEach( function ( mapping ) {
 			middleware[ middleware.length ] = function ( req, res, next ) {
-				var prefix, mimetype, data, src, i, complete, folder, pathname, relpath, filepath, virtualDirContents, dirContents;
+				var prefix, mimetype, data, dataStr, useStr, name, src, i, complete, folder, pathname, relpath, filepath, virtualDirContents, dirContents;
 
 				prefix = mapping.prefix;
 				virtualDirContents = [];
@@ -110,9 +110,21 @@ module.exports = function ( grunt ) {
 						if ( grunt.file.exists( filepath ) ) {
 							if ( !grunt.file.isDir( filepath ) ) {
 								mimetype = mime.lookup( filepath );
+								data = fs.readFileSync( filepath );
+
+								// replace tags
+								dataStr = data.toString();
+								dataStr = dataStr.replace( /<%=\s*([a-zA-Z$_0-9]+)\s*%>/g, function ( match, varName ) {
+									if ( varName in options.variables ) {
+										useStr = true; // not a binary file
+										return options.variables[ varName ];
+									}
+
+									return match;
+								});
 
 								res.setHeader( 'Content-Type', mimetype );
-								res.end( fs.readFileSync( filepath ) );
+								res.end( useStr ? dataStr : data );
 								complete = true;
 								break;
 							}
