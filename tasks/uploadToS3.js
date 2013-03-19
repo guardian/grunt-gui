@@ -116,10 +116,13 @@ module.exports = function ( grunt ) {
 				// data = grunt.file.read( abspath, { encoding: null } );
 				data = fs.readFileSync( abspath );
 
-				batch.add( options.pathPrefix + relpath, data, {
+				params = extend({
 					ContentType: mime.lookup( filename ),
 					CacheControl: 'max-age=' + options.maxage
-				});
+				}, options.params || {});
+
+				batch.add( options.pathPrefix + relpath, data, params);
+
 			});
 
 			
