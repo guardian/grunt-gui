@@ -10,7 +10,7 @@ module.exports = function ( grunt ) {
 
 		// this is an async task
 		done = this.async();
-
+		
 		options = this.options({
 			maxage: 60
 		});
@@ -32,6 +32,7 @@ module.exports = function ( grunt ) {
 		if ( !s3 ) {
 			grunt.log.error( this.name + ' task needs an instance of AWS.S3' );
 			done( false );
+			return;
 		}
 
 		normalise = function ( filepath ) {
@@ -122,10 +123,28 @@ module.exports = function ( grunt ) {
 				}, options.params || {});
 
 				batch.add( options.pathPrefix + relpath, data, params);
-
 			});
 
+		} else if ( this.files ){
 			
+			var numFiles = this.files.length;
+			for(var i = 0; i < numFiles; ++i){
+				var file = this.files[i];
+				
+				if ( !grunt.file.isDir( file.src[0] ) ) {
+					var srcPath = normalise(file.src[0]);
+					var destPath = normalise(file.dest)
+
+					var data = fs.readFileSync( srcPath );
+
+					params = extend({
+						ContentType: mime.lookup( srcPath ),
+						CacheControl: 'max-age=' + options.maxage
+					}, options.params || {});
+
+					batch.add( options.pathPrefix + destPath, data, params);
+				}	
+			}
 		}
 		
 		batch.start();
