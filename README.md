@@ -11,14 +11,14 @@ Fetch a file from a remote URL, optionally process it, and save it locally
 grunt.initConfig({
   fetch: {
     options: {
-      process: require( 'csv-to-json' )
+      process: require( 'csv-to-json' ) // this is just an example!
     },
     table1: {
-      url: 'https://docs.google.com/a/guardian.co.uk/spreadsheet/ccc?key=123456#gid=0',
+      url: 'https://docs.google.com/spreadsheet/pub?key=123456789&output=csv',
       dest: 'project/data/table1.json'
     },
     table2: {
-      url: 'https://docs.google.com/a/guardian.co.uk/spreadsheet/ccc?key=234567#gid=0',
+      url: 'https://docs.google.com/spreadsheet/pub?key=987654321&output=csv',
       dest: 'project/data/table2.json'
     }
   }
